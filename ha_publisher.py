@@ -305,8 +305,8 @@ class HASensorPusher:
                         "pulseaudio_list_sinks": f"{url}/pulseaudio/list_sinks",
                         "pulseaudio_list_input_sinks": f"{url}/pulseaudio/list_input_sinks",
                         "pulseaudio_is_playing": f"{url}/pulseaudio/is_playing",
-                        "pulseaudio_bluez_active": f"{url}/pulseaudio/bluez_active",
-                        "pulseaudio_bluez_connected": f"{url}/pulseaudio/bluez_connected",
+                        "pulseaudio_bluez_active": f"{url}/pulseaudio/is_bluez_active",
+                        "pulseaudio_bluez_connected": f"{url}/pulseaudio/is_bluez_connected",
                         "brightness": f"{url}/brightness"
                     }
                     for sensor_name, url in readings.items():
