@@ -1,4 +1,5 @@
 import json
+import string
 from threading import Lock
 
 import requests
@@ -6,7 +7,7 @@ import time
 from zeroconf import ServiceBrowser, ServiceStateChange
 from zeroconf import Zeroconf
 
-IDENTIFIER = "restsysadmin"
+IDENTIFIER = "restsysmon"
 HA_URL = "http://192.168.1.8:8123"
 HA_TOKEN = "..."
 
@@ -24,6 +25,9 @@ class HASensorPusher:
 
     @staticmethod
     def ha_binary_sensor_update(device_id, state="on", attrs=None):
+        device_id = device_id.replace(" ", "_")
+        for s in string.punctuation:
+            device_id = device_id.replace(s, "_")
         attrs = attrs or {"friendly_name": device_id,
                           "state_color": True,
                           "device_class": "presence"}
@@ -190,6 +194,36 @@ class HASensorPusher:
                                                                 "state_color": True,
                                                                 "device_class": "presence"})
                     elif sensor_id.endswith("pulseaudio_list_input_sinks"):
+                        # streams of interest, even if not currently playing will report a status
+                        APPS = [
+                            "netflix",
+                            "spotify"
+                        ]
+                        for app in APPS:
+
+                            if any(app == _["application"] for _ in res):
+                                # app names handled below, we just want streams here
+                                # eg, detect netflix in firefox via pulseaudio playback
+                                continue
+
+                            if any(app == _.get('media_name', "").lower() for _ in res):
+                                # detected application running via pulseaudio playback
+                                state = "on"
+                                mute_state = "off"  # TODO - check the playback info
+                            else:
+                                state = mute_state = "off"
+
+                            sensor_id = f"{device_id}_pulseaudio_stream_{app}"
+                            self.ha_binary_sensor_update(sensor_id, state=state,
+                                                         attrs={"friendly_name": app,
+                                                                "state_color": True,
+                                                                "device_class": "presence"})
+                            sensor_id = f"{device_id}_pulseaudio_stream_{app}_muted"
+                            self.ha_binary_sensor_update(sensor_id, state=mute_state,
+                                                         attrs={"friendly_name": app + " muted",
+                                                                "state_color": True,
+                                                                "device_class": "presence"})
+
                         for e in res:
                             sensor_id = f"{device_id}_pulseaudio_stream_{e['application']}"
                             f = e.get('media_name') or e.get('name') or e.get('application')
@@ -271,6 +305,8 @@ class HASensorPusher:
                         "pulseaudio_list_sinks": f"{url}/pulseaudio/list_sinks",
                         "pulseaudio_list_input_sinks": f"{url}/pulseaudio/list_input_sinks",
                         "pulseaudio_is_playing": f"{url}/pulseaudio/is_playing",
+                        "pulseaudio_bluez_active": f"{url}/pulseaudio/bluez_active",
+                        "pulseaudio_bluez_connected": f"{url}/pulseaudio/bluez_connected",
                         "brightness": f"{url}/brightness"
                     }
                     for sensor_name, url in readings.items():

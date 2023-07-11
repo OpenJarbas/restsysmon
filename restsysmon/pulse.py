@@ -127,4 +127,52 @@ def get_pa_routes(app):
                 now_playing_str += s.name + "\n"
         return now_playing_str.strip()
 
+    @app.route("/pulseaudio/active_sinks")
+    def pa_active_sinks():
+        return [str(s.sink) for s in pulse.sink_input_list()
+                if not s.corked]
+
+    @app.route("/pulseaudio/bluez_sinks")
+    def pa_bluez_sinks():
+        sinks = []
+
+        for s in pulse.sink_list():
+            if s.driver != "module-bluez5-device.c":
+                continue
+
+            volumes = [v * 100 for v in s.volume.__dict__["values"]]
+
+            sinks.append({
+                "index": s.index,
+                "mute": s.mute,
+                "name": s.name,
+                "card": s.card,
+                "channel_count": s.channel_count,
+                "channel_list": s.channel_list,
+                "driver": s.driver,
+                "description": s.description,
+                "state": str(s.state).split("state=")[-1][:-1],
+                "volumes": volumes
+            })
+
+        return sinks
+
+    @app.route("/pulseaudio/bluez_connected")
+    def pa_bluez_connected():
+        for s in pulse.sink_list():
+            if s.driver == "module-bluez5-device.c":
+                return "1"
+        return "0"
+
+    @app.route("/pulseaudio/bluez_active")
+    def pa_bluez_active():
+        actives = [s.sink for s in pulse.sink_input_list()
+                   if not s.corked]
+
+        for s in pulse.sink_list():
+            if s.driver == "module-bluez5-device.c":
+                if s.index in actives:
+                    return "1"
+        return "0"
+
     return app
