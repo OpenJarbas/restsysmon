@@ -157,14 +157,14 @@ def get_pa_routes(app):
 
         return sinks
 
-    @app.route("/pulseaudio/bluez_connected")
+    @app.route("/pulseaudio/is_bluez_connected")
     def pa_bluez_connected():
         for s in pulse.sink_list():
             if s.driver == "module-bluez5-device.c":
                 return "1"
         return "0"
 
-    @app.route("/pulseaudio/bluez_active")
+    @app.route("/pulseaudio/is_bluez_active")
     def pa_bluez_active():
         actives = [s.sink for s in pulse.sink_input_list()
                    if not s.corked]
