@@ -138,7 +138,7 @@ def get_procs_routes(app):
 
     @app.route("/is_minidlna")
     def is_minidlna():
-        p = _find_proc("minidlna")
+        p = _find_proc("minidlnad")
         if p:
             return "1"
         return "0"
