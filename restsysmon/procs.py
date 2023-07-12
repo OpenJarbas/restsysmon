@@ -136,4 +136,18 @@ def get_procs_routes(app):
             return "1"
         return "0"
 
+    @app.route("/is_minidlna")
+    def is_minidlna():
+        p = _find_proc("minidlna")
+        if p:
+            return "1"
+        return "0"
+
+    @app.route("/is_upmpdcli")
+    def is_upmpdcli():
+        p = _find_proc("upmpdcli")
+        if p:
+            return "1"
+        return "0"
+
     return app

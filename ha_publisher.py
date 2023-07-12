@@ -293,6 +293,8 @@ class HASensorPusher:
                         "is_ovos": f"{url}/is_ovos",
                         "is_spotify": f"{url}/is_spotify",
                         "is_firefox": f"{url}/is_firefox",
+                        "is_upmpdcli": f"{url}/is_upmpdcli",
+                        "is_minidlna": f"{url}/is_minidlna",
                         #   "pulseaudio_info": f"{url}/pulseaudio/info",
                         "pulseaudio_version": f"{url}/pulseaudio/version",
                         "pulseaudio_channel_count": f"{url}/pulseaudio/channel_count",
