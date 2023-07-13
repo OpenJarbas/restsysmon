@@ -122,8 +122,11 @@ def get_procs_routes(app):
 
     @app.route("/is_spotify")
     def is_spotify():
-        # TODO - raspotify / spotifyd etc
-        p = _find_proc("spotify")
+        # all these turn the device into a spotify player
+        p = _find_proc("spotify") or \
+            _find_proc("rasspotify") or \
+            _find_proc("librespot")or \
+            _find_proc("spotifyd")
         if p:
             return "1"
         return "0"

@@ -33,30 +33,36 @@ class HASensorPusher:
                           "device_class": "presence"}
 
         print("updating binary sensor - ", device_id)
-        response = requests.post(
-            f"{HA_URL}/api/states/binary_sensor.{IDENTIFIER}_{device_id}",
-            headers={
-                "Authorization": f"Bearer {HA_TOKEN}",
-                "content-type": "application/json",
-            },
-            data=json.dumps({"state": state, "attributes": attrs}),
-        )
-        print(response.text)
+        try:
+            response = requests.post(
+                f"{HA_URL}/api/states/binary_sensor.{IDENTIFIER}_{device_id}",
+                headers={
+                    "Authorization": f"Bearer {HA_TOKEN}",
+                    "content-type": "application/json",
+                },
+                data=json.dumps({"state": state, "attributes": attrs}),
+            )
+            print(response.text)
+        except:
+            print("failed to push data to HA")
 
     @staticmethod
     def ha_sensor_update(device_id, state="on", attrs=None):
         attrs = attrs or {"friendly_name": device_id,
                           "state_color": True}
         print("updating sensor - ", device_id)
-        response = requests.post(
-            f"{HA_URL}/api/states/sensor.{IDENTIFIER}_{device_id}",
-            headers={
-                "Authorization": f"Bearer {HA_TOKEN}",
-                "content-type": "application/json",
-            },
-            data=json.dumps({"state": state, "attributes": attrs}),
-        )
-        print(response.text)
+        try:
+            response = requests.post(
+                f"{HA_URL}/api/states/sensor.{IDENTIFIER}_{device_id}",
+                headers={
+                    "Authorization": f"Bearer {HA_TOKEN}",
+                    "content-type": "application/json",
+                },
+                data=json.dumps({"state": state, "attributes": attrs}),
+            )
+            print(response.text)
+        except:
+            print("failed to push data to HA")
 
     def on_new_node(self, node):
         device_id = node["name"]
@@ -132,9 +138,14 @@ class HASensorPusher:
             "fans": f"{url}/fans",
             "network_interfaces": f"{url}/network_interfaces",
             "external_ip": f"{url}/external_ip",
-            "procs": f"{url}/procs",
+            "pulseaudio_version": f"{url}/pulseaudio/version",
             "is_systemd": f"{url}/is_systemd",
-            "is_dbus": f"{url}/is_dbus"
+            "is_dbus": f"{url}/is_dbus",
+            "cpu_freq_max": f"{url}/cpu_freq_max",
+            "cpu_freq_min": f"{url}/cpu_freq_min",
+            "disk_total": f"{url}/disk_total",
+            "pulseaudio_hostname": f"{url}/pulseaudio/hostname",
+            "memory_total": f"{url}/memory_total"
         }
         for sensor_name, url in readings.items():
             self.read_sensor(device_id, sensor_name, url)
@@ -263,27 +274,19 @@ class HASensorPusher:
                          "state_color": True}
                     self.ha_sensor_update(sensor_id, state=str(res), attrs=a)
         except:
-            raise
+            return False
+        return True
 
     def get_readings(self):
         with self.lock:
             for device_id, data in dict(self.nodes).items():
+                alive = False
                 if data["state"] == "on":
                     url = f"{data['host']}:{data['port']}"
                     readings = {
-                        "cpu_usage": f"{url}/cpu_usage",
-                        "cpu_freq": f"{url}/cpu_freq",
-                        "cpu_freq_max": f"{url}/cpu_freq_max",
-                        "cpu_freq_min": f"{url}/cpu_freq_min",
-                        "cpu_temperature": f"{url}/cpu_temperature",
-                        "memory_usage": f"{url}/memory_usage",
-                        "memory_total": f"{url}/memory_total",
                         "swap_usage": f"{url}/swap_usage",
                         "swap_total": f"{url}/swap_total",
                         "disk_usage": f"{url}/disk_usage",
-                        "disk_percent": f"{url}/disk_percent",
-                        "disk_total": f"{url}/disk_total",
-                        "battery_percent": f"{url}/battery_percent",
                         "external_ip": f"{url}/external_ip",
                         "is_kdeconnect": f"{url}/is_kdeconnect",
                         "is_pulseaudio": f"{url}/is_pulseaudio",
@@ -295,25 +298,31 @@ class HASensorPusher:
                         "is_firefox": f"{url}/is_firefox",
                         "is_upmpdcli": f"{url}/is_upmpdcli",
                         "is_minidlna": f"{url}/is_minidlna",
-                        #   "pulseaudio_info": f"{url}/pulseaudio/info",
-                        "pulseaudio_version": f"{url}/pulseaudio/version",
                         "pulseaudio_channel_count": f"{url}/pulseaudio/channel_count",
                         "pulseaudio_default_sink": f"{url}/pulseaudio/default_sink",
                         "pulseaudio_default_source": f"{url}/pulseaudio/default_source",
-                        "pulseaudio_hostname": f"{url}/pulseaudio/hostname",
-                        "pulseaudio_now_playing": f"{url}/pulseaudio/now_playing",
                         "pulseaudio_list_cards": f"{url}/pulseaudio/list_cards",
                         "pulseaudio_list_sources": f"{url}/pulseaudio/list_sources",
                         "pulseaudio_list_sinks": f"{url}/pulseaudio/list_sinks",
                         "pulseaudio_list_input_sinks": f"{url}/pulseaudio/list_input_sinks",
+                        "cpu_usage": f"{url}/cpu_usage",
+                        "cpu_freq": f"{url}/cpu_freq",
+                        "cpu_temperature": f"{url}/cpu_temperature",
+                        "memory_usage": f"{url}/memory_usage",
+                        "disk_percent": f"{url}/disk_percent",
+                        "battery_percent": f"{url}/battery_percent",
+                        "pulseaudio_now_playing": f"{url}/pulseaudio/now_playing",
                         "pulseaudio_is_playing": f"{url}/pulseaudio/is_playing",
                         "pulseaudio_bluez_active": f"{url}/pulseaudio/is_bluez_active",
                         "pulseaudio_bluez_connected": f"{url}/pulseaudio/is_bluez_connected",
                         "brightness": f"{url}/brightness"
                     }
                     for sensor_name, url in readings.items():
-                        self.read_sensor(device_id, sensor_name, url)
+                        alive = self.read_sensor(device_id, sensor_name, url) or alive
                         time.sleep(self.sleep_time)
+
+                data["state"] = alive
+                self.on_node_update(data)
 
 
 if __name__ == "__main__":
